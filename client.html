@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+   <head>
+<!-- Jquery -->
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+      <script src="/socket.io/socket.io.js"></script>
+      <script type ="text/javascript">
+	
+	$(document).ready(function(){
+		waitForLogin();
+		populateRooms();
+	});
+	var nickname = "Guest";
+      var socketio = io.connect();
+      socketio.on("message_to_client",function(data) {
+         //Append an HR thematic break and the escaped HTML of the new message
+         document.getElementById("chatlog").appendChild(document.createElement("hr"));
+         document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
+      });
+      socketio.on("validate_nickname_to_client",function(data) {
+		alert(data['nickname']);
+		$("#message_input").show();
+		$("#sendButton").show();
+      });
+ 
+      function sendMessage(){
+         var msg = document.getElementById("message_input").value;
+         socketio.emit("message_to_server", {message:msg});
+      }
+	
+	function waitForLogin(){
+	//hide the ability to send messages until user has logged in.
+		$("#message_input").hide();
+		$("#sendButton").hide();
+	}
+
+	function login(){
+	//log the user into the selected room.
+		var name = document.getElementById("nickname").value;
+		socketio.emit("nickname_to_server", {nickname:name});	
+	} 
+
+	function populateRooms(){
+	//fill the available rooms selector with all possible rooms
+	}
+
+	function createNewRoom(){
+	//make a new room with the user's input if that name is not already taken and add to the available rooms list
+	
+	}
+      </script>
+   </head>
+   <body>
+
+	<label id="loginText">Nickname: </label> <input type="text" id="nickname"/>
+	<select id="availableRooms">
+	</select>
+	<label id="passText">Password: </label> <input type="password" id="pass"/>
+	<button onclick="login()" id="loginButton"> Join</button>
+	<label id="newRoom">Create New Room: </label> <input type="text" id="createNewRoom"/>
+	<label id="newPassText">Password (Leave blank for public room): </label> <input type="password" id="newPass"/>
+	<button onclick="createNewRoom()" id="create"> Create</button>
+      <input type=text" id="message_input"/>
+      <button onclick="sendMessage()" id="sendButton">send</button>
+      <div id="chatlog"></div>
+   </body>
+</html>
