@@ -11,6 +11,7 @@
 		populateRooms();
 	});
 	var nickname = "Guest";
+	var currentRoom = "General";
       var socketio = io.connect();
       socketio.on("message_to_client",function(data) {
          //Append an HR thematic break and the escaped HTML of the new message
@@ -18,30 +19,53 @@
          document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
       });
       socketio.on("validate_nickname_to_client",function(data) {
-		alert(data['nickname']);
+		nickname = data['nickname'];
+		currentRoom = data['inRoom'];
 		$("#message_input").show();
 		$("#sendButton").show();
+		document.getElementById("crntRoom").innerHTML = currentRoom;
+		var allUsers = "";
+		for(var i = 0; i < data['users'].length; i++){
+			allUsers += "<option>"+data['users'][i] + "</option>";
+		}
+		document.getElementById("RoomUsers").innerHTML = allUsers;
+		$("#RoomUsers").show();
+      });
+      socketio.on("return_rooms_to_client",function(data) {
+		//TODO: remove all chiled nodes in available rooms
+		var numRooms = data['index'];
+		for(var i = 0; i < numRooms; i++){
+			var opt = document.createElement("option");
+			opt.class = "room";
+			opt.value = data['allRooms'][i];
+			opt.innerHTML = data['allRooms'][i];
+			document.getElementById("availableRooms").appendChild(opt);
+		}
       });
  
       function sendMessage(){
          var msg = document.getElementById("message_input").value;
-         socketio.emit("message_to_server", {message:msg});
+         socketio.emit("message_to_server", {message:msg, toRoom:currentRoom});
       }
 	
 	function waitForLogin(){
 	//hide the ability to send messages until user has logged in.
 		$("#message_input").hide();
 		$("#sendButton").hide();
+		$("#RoomUsers").hide();
 	}
 
 	function login(){
 	//log the user into the selected room.
 		var name = document.getElementById("nickname").value;
-		socketio.emit("nickname_to_server", {nickname:name});	
+		var joinRoom = document.getElementById("availableRooms").value;
+		var pass = document.getElementById("pass").value;
+		socketio.emit("nickname_to_server", {nickname:name, room:joinRoom, password:pass});	
 	} 
 
 	function populateRooms(){
 	//fill the available rooms selector with all possible rooms
+		socketio.emit("get_rooms_on_server");
 	}
 
 	function createNewRoom(){
@@ -51,7 +75,7 @@
       </script>
    </head>
    <body>
-
+	<h1 id="crntRoom"> </h1>
 	<label id="loginText">Nickname: </label> <input type="text" id="nickname"/>
 	<select id="availableRooms">
 	</select>
@@ -60,6 +84,8 @@
 	<label id="newRoom">Create New Room: </label> <input type="text" id="createNewRoom"/>
 	<label id="newPassText">Password (Leave blank for public room): </label> <input type="password" id="newPass"/>
 	<button onclick="createNewRoom()" id="create"> Create</button>
+	<select id="RoomUsers">
+	</select>
       <input type=text" id="message_input"/>
       <button onclick="sendMessage()" id="sendButton">send</button>
       <div id="chatlog"></div>
