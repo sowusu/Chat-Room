@@ -12,6 +12,7 @@
 	});
 	var nickname = "Guest";
 	var currentRoom = "General";
+	var roomCreator = "Guest";
       var socketio = io.connect();
       socketio.on("message_to_client",function(data) {
          //Append an HR thematic break and the escaped HTML of the new message
@@ -21,6 +22,7 @@
       socketio.on("validate_nickname_to_client",function(data) {
 		nickname = data['nickname'];
 		currentRoom = data['inRoom'];
+		roomCreator = data['creator'];
 		$("#message_input").show();
 		$("#sendButton").show();
 		document.getElementById("crntRoom").innerHTML = currentRoom;
@@ -30,9 +32,16 @@
 		}
 		document.getElementById("RoomUsers").innerHTML = allUsers;
 		$("#RoomUsers").show();
+		if(nickname===roomCreator){
+			$("#ban").show();
+			$("#kick").show();
+		}
+		else{
+			$("#ban").hide();
+			$("#kick").hide();
+		}
       });
       socketio.on("new_user_joined",function(data) {
-		alert("new user has joined!");
 		var allUsers = "";
 		for(var i = 0; i < data['users'].length; i++){
 			allUsers += "<option>"+data['users'][i] + "</option>";
@@ -64,6 +73,8 @@
 		$("#message_input").hide();
 		$("#sendButton").hide();
 		$("#RoomUsers").hide();
+		$("#ban").hide();
+		$("#kick").hide();
 	}
 
 	function removePosts(){
@@ -87,6 +98,16 @@
 	function populateRooms(){
 	//fill the available rooms selector with all possible rooms
 		socketio.emit("get_rooms_on_server");
+	}
+
+	function kick(){
+		var name = document.getElementById("RoomUsers").value;
+		socketio.emit("kick_user_on_server", {kickedUser:name, crntRoom:currentRoom});	
+	}
+
+	function ban(){
+		var name = document.getElementById("RoomUsers").value;
+		socketio.emit("ban_user_on_server", {bannedUser:name, kickedUser:name, crntRoom:currentRoom});	
 	}
 
 	function createNewRoom(){
@@ -121,6 +142,8 @@
 	</select>
       <input type=text" id="private_message_input"/>
       <button onclick="PMMessage()" id="PMButton">PM</button>
+      <button onclick="kick()" id="kick">Kick</button>
+      <button onclick="ban()" id="ban">Ban</button>
       <div id="chatlog"></div>
    </body>
 </html>
