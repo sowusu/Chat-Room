@@ -1,0 +1,6 @@
+Hunter Wills hwills
+Nana Owusu nowusu
+
+http://ec2-54-148-70-188.us-west-2.compute.amazonaws.com:3456/client.html
+
+For our creative portion, we implemented anonymous message posting for users who want to say things without being known. We also implemented a friend list so users can add another user to their freinds list and when that other user moves to a different room, they will still be able to communicate with their friend. For really annoying users who just pester beyond beleif, we added an ignore button so these users can be silenced when the creator of the room is refusing to striaght up ban them.

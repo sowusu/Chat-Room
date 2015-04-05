@@ -21,6 +21,8 @@ app.listen(3456);
 
 
 var loggedUsers = ["Guest"];
+var friends = [[]];
+var ignored = [[]];
 var guestNumber = 0;
 var rooms = ["General"];
 var roomPasswords = [""];
@@ -55,7 +57,20 @@ io.sockets.on("connection", function(socket){
 			if(rooms[i] == data['toRoom']){
 				console.log("to users: "+roomUsers); // log it to the Node.JS output
 				for(var j = 0; j < roomUsers[i].length; j++){
-					roomSockets[i][j].emit("message_to_client",{message:data["message"], from:fromUser }) // broadcast the message to other users
+					var ignoring = false;
+					for(var k = 0; k < ignored.length; k++){
+						console.log("user: " + loggedUsers[k] + " ignores " + ignored[k]);
+						if(roomUsers[i][j] == loggedUsers[k]){
+							for(var l = 0; l < ignored[k].length; l++){
+								if(fromUser==ignored[k][l]){
+									ignoring = true;
+								}
+							}
+						}
+					}
+					if(!ignoring){
+						roomSockets[i][j].emit("message_to_client",{message:data["message"], from:fromUser }) // broadcast the message to other users
+					}
 				}
 			}
 		}
@@ -70,9 +85,43 @@ io.sockets.on("connection", function(socket){
 		for(var i = 0; i < rooms.length; i++){
 			if(rooms[i] == data['toRoom']){
 				for(var j = 0; j < roomUsers[i].length; j++){
-					if(roomUsers[i][j] == data['toUser']){
+					var ignoring = false;
+					for(var k = 0; k < ignored.length; k++){
+						if(roomUsers[i][j] == loggedUsers[k]){
+							for(var l = 0; l < ignored[k].length; l++){
+								if(fromUser==ignored[k][l]){
+									ignoring = true;
+								}
+							}
+						}
+					}
+					if(roomUsers[i][j] == data['toUser'] && !ignoring){
 						roomSockets[i][j].emit("message_to_client",{message:data["message"], from:fromUser }) // broadcast the message to other users
 					}
+				}
+			}
+		}
+	});
+
+	socket.on('friend_message_to_server', function(data) {
+		// This callback runs when the server receives a new message from the client.
+		var fromUser = data['nickname']; 
+		console.log("PMmessage: "+data["message"]); // log it to the Node.JS output
+		console.log("to user: "+data['toUser']); // log it to the Node.JS output
+		for(var i = 0; i < rooms.length; i++){
+			for(var j = 0; j < roomUsers[i].length; j++){
+				var ignoring = false;
+				for(var k = 0; k < ignored.length; k++){
+					if(roomUsers[i][j] == loggedUsers[k]){
+						for(var l = 0; l < ignored[k].length; l++){
+							if(fromUser==ignored[k][l]){
+								ignoring = true;
+							}
+						}
+					}
+				}
+				if(roomUsers[i][j] == data['toUser'] && !ignoring){
+					roomSockets[i][j].emit("message_to_client",{message:data["message"], from:fromUser }) // broadcast the message to other users
 				}
 			}
 		}
@@ -125,6 +174,49 @@ io.sockets.on("connection", function(socket){
 		kickUser(data,userSocket);
 	});
 
+	socket.on('friend_user_on_server', function(data) {
+		for(var i = 0; i < loggedUsers.length; i++)
+		{
+			if(loggedUsers[i] == data["nickname"])
+			{
+				var alreadyThere = false;
+				for(var j = 0; j < friends[i].length; j++)
+				{
+					if(friends[i][j] == data["friend"])
+					{
+						alreadyThere = true;
+						friends[i].splice(j,1);
+					}
+				}
+				if(!alreadyThere){
+					friends[i].push(data["friend"]);
+				}
+				socket.emit("return_friends_to_client", {friends:friends[i], numFriends:friends[i].length});
+			}
+		}
+	});
+
+	socket.on('ignore_user_on_server', function(data) {
+		for(var i = 0; i < loggedUsers.length; i++)
+		{
+			if(loggedUsers[i] == data["nickname"])
+			{
+				var alreadyThere = false;
+				for(var j = 0; j < ignored[i].length; j++)
+				{
+					if(ignored[i][j] == data["ignore"])
+					{
+						alreadyThere = true;
+						ignored[i].splice(j,1);
+					}
+				}
+				if(!alreadyThere){
+					ignored[i].push(data["ignore"]);
+				}
+			}
+		}
+	});
+
 	socket.on('nickname_to_server', function(data) {
 		var isValid = true;
 		removeUser(data, socket);
@@ -143,12 +235,14 @@ io.sockets.on("connection", function(socket){
 		}
 		var name = data["nickname"];
 		if(isValid){
-			loggedUsers.push(data["nickname"]);
 		}
 		else{
 			guestNumber++;
 			name = "Guest"+guestNumber;
 		}
+		loggedUsers.push(name);
+		friends.push([[]]);
+		ignored.push([[]]);
 		var room = data['room'];
 		var otherUsers;
 		for(var i = 0; i < rooms.length; i++){
@@ -198,6 +292,8 @@ function removeUser(data, socket){
 	for(var i = 0; i < loggedUsers.length; i++){
 		if(loggedUsers[i] == data['crntUser']){
 			loggedUsers.splice(i,1);
+			friends.splice(i,1);
+			ignored.splice(i,1);
 		}
 	}
 }
