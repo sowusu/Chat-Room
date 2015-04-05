@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
    <head>
-<!--	<link rel = "stylesheet" type = "text/css" href = "decor.css" > -->
+	<link rel = "stylesheet" type = "text/css" href = "decor.css" >
 <!-- Jquery -->
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
       <script src="/socket.io/socket.io.js"></script>
@@ -13,30 +13,41 @@
 	});
 	var nickname = "Guest";
 	var currentRoom = "General";
+	var roomCreator = "Guest";
       var socketio = io.connect();
       socketio.on("message_to_client",function(data) {
          //Append an HR thematic break and the escaped HTML of the new message
          document.getElementById("chatlog").appendChild(document.createElement("hr"));
-        var post_div = $(document).creatElement('div');
-	post_div.attr("class", "post");
+        var post_div = document.createElement("div");
+	post_div.setAttribute("class", "post");
 	post_div.innerHTML =  data['from'] + ": " + data['message'];
 	document.getElementById("chatlog").appendChild(post_div);
       });
       socketio.on("validate_nickname_to_client",function(data) {
 		nickname = data['nickname'];
 		currentRoom = data['inRoom'];
-		$("#message_input").show();
-		$("#sendButton").show();
+		roomCreator = data['creator'];
+		//$("#message_input").show();
+		//$("#sendButton").show();
+		$("#chatBox").show();
+		$("#mgBox").show();
 		document.getElementById("crntRoom").innerHTML = currentRoom;
 		var allUsers = "";
 		for(var i = 0; i < data['users'].length; i++){
 			allUsers += "<option>"+data['users'][i] + "</option>";
 		}
 		document.getElementById("RoomUsers").innerHTML = allUsers;
-		$("#RoomUsers").show();
+		//$("#RoomUsers").show();
+		if(nickname===roomCreator){
+			$("#ban").show();
+			$("#kick").show();
+		}
+		else{
+			$("#ban").hide();
+			$("#kick").hide();
+		}
       });
       socketio.on("new_user_joined",function(data) {
-		alert("new user has joined!");
 		var allUsers = "";
 		for(var i = 0; i < data['users'].length; i++){
 			allUsers += "<option>"+data['users'][i] + "</option>";
@@ -53,8 +64,12 @@
       });
  
       function sendMessage(){
+	var username = nickname;
+	if (document.getElementById("checked").checked){
+		username = "anon";
+	}
          var msg = document.getElementById("message_input").value;
-         socketio.emit("message_to_server", {message:msg, toRoom:currentRoom, nickname:nickname});
+         socketio.emit("message_to_server", {message:msg, toRoom:currentRoom, nickname:username});
       }
 
       function PMMessage(){
@@ -65,9 +80,13 @@
 	
 	function waitForLogin(){
 	//hide the ability to send messages until user has logged in.
-		$("#message_input").hide();
-		$("#sendButton").hide();
-		$("#RoomUsers").hide();
+		//$("#message_input").hide();
+		//$("#sendButton").hide();
+		//$("#RoomUsers").hide();
+		$("#chatBox").hide();
+		//$("#ban").hide();
+		//$("#kick").hide();
+		$("#mgBox").hide();
 	}
 
 	function removePosts(){
@@ -93,6 +112,16 @@
 		socketio.emit("get_rooms_on_server");
 	}
 
+	function kick(){
+		var name = document.getElementById("RoomUsers").value;
+		socketio.emit("kick_user_on_server", {kickedUser:name, crntRoom:currentRoom});	
+	}
+
+	function ban(){
+		var name = document.getElementById("RoomUsers").value;
+		socketio.emit("ban_user_on_server", {bannedUser:name, kickedUser:name, crntRoom:currentRoom});	
+	}
+
 	function createNewRoom(){
 	//make a new room with the user's input if that name is not already taken and add to the available rooms list
 	var room_name = document.getElementById("createNewRoom").value;
@@ -110,22 +139,48 @@
       </script>
    </head>
    <body>
-	<h1 id="crntRoom"> </h1>
-	<label id="loginText">Nickname: </label> <input type="text" id="nickname"/>
-	<select id="availableRooms">
-	</select>
+	<div id = "main">
+	<h1 id="crntRoom"> Main Lobby</h1>
+	
+	<div id = "roomBox">
+	 <b>Enter a room.. </b><br>
+	<label id="loginText">Nickname: </label> <input type="text" id="nickname"/><br>
+	<label> Available Rooms </label><select id="availableRooms">
+	</select><br>
 	<label id="passText">Password: </label> <input type="password" id="pass"/>
-	<button onclick="login()" id="loginButton"> Join</button>
-	<label id="newRoom">Create New Room: </label> <input type="text" id="createNewRoom"/>
-	<label id="newPassText">Password (Leave blank for public room): </label> <input type="password" id="newPass"/>
-	<button onclick="createNewRoom()" id="create"> Create</button>
-      <input type=text" id="message_input"/>
-      <button onclick="sendMessage()" id="sendButton">send</button>
-	<select id="RoomUsers">
-	</select>
-      <input type=text" id="private_message_input"/>
-      <button onclick="PMMessage()" id="PMButton">PM</button>
+	<button onclick="login()" id="loginButton"> Join</button><br>
+	</div>
 
-      <div id="chatlog"></div>
+	<div id = "createBox">
+	<b>Create a new room! </b><br>
+	<label id="newRoom">New Room Name: </label> <input type="text" id="createNewRoom"/><br>
+	<label id="newPassText">Password to enter room(Leave blank for public room): </label> <input type="password" id="newPass"/><br>
+	<button onclick="createNewRoom()" id="create"> Create</button>
+	</div>
+	
+	<div id = "pmBox">
+	<b>Send a private Message </b><br>
+	<b>TO:</b><select id="RoomUsers">
+	</select>
+      <b>Message:</b><input type=text" id="private_message_input"/><br>
+      <button onclick="PMMessage()" id="PMButton">PM</button>
+	</div>	
+
+	<div id = "mgBox">
+	<h3> Manage Chat </h3>
+      <button onclick="kick()" id="kick">Kick</button>
+      <button onclick="ban()" id="ban">Ban</button>
+      </div>
+
+	<div id = "chatBox">
+	<b> Chat </b><br>
+      	<input type=text" id="message_input"/>
+      	<label>anonymous?</label><input type = "checkbox" id = "checked" ><br>
+	<button onclick="sendMessage()" id="sendButton">send</button>
+	</div>
+	
+	<div id="chatlog"></div>
+
+	</div><!-- end of main -->
    </body>
 </html>
