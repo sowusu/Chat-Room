@@ -51,14 +51,13 @@ io.sockets.on("connection", function(socket){
 		// This callback runs when the server receives a new message from the client.
 		var fromUser = data['nickname']; 
 		console.log("message: "+data["message"]); // log it to the Node.JS output
-		console.log("to users: "+roomUsers); // log it to the Node.JS output
 		for(var i = 0; i < rooms.length; i++){
 			if(rooms[i] == data['toRoom']){
+				console.log("to users: "+roomUsers); // log it to the Node.JS output
 				for(var j = 0; j < roomUsers[i].length; j++){
 					roomSockets[i][j].emit("message_to_client",{message:data["message"], from:fromUser }) // broadcast the message to other users
 				}
 			}
-			break;
 		}
 	});
 
@@ -76,7 +75,6 @@ io.sockets.on("connection", function(socket){
 					}
 				}
 			}
-			break;
 		}
 	});
 
@@ -86,19 +84,16 @@ io.sockets.on("connection", function(socket){
 
 
 	socket.on("add_room_on_server", function(data){
-	
 		rooms.push(data["roomName"]);
 		roomPasswords.push(data["roomPass"]);
-		roomSockets.push([]);
-		roomCreators.push(data["creator"]);
 		roomUsers.push([]);
-		roomSockets[roomSockets.length - 1].push(socket);
-		
-
+		roomCreators.push(data["creator"]);
+		roomSockets.push([]);
 	});
 
 	socket.on('nickname_to_server', function(data) {
 		var isValid = true;
+		removeUser(data, socket);
 		if(data["nickname"].length >= 5 && data["nickname"].substring(0, 5) == "Guest"){
 			isValid = false;
 		}
@@ -122,26 +117,15 @@ io.sockets.on("connection", function(socket){
 		}
 		var room = data['room'];
 		var otherUsers;
-		var thoseInRoom;
 		for(var i = 0; i < rooms.length; i++){
-			if(rooms[i]==data['crntRoom']){
-				for(var j = 0; j < roomUsers[i].length; j++){
-					if(roomsUsers[i][j] = data['crntUser']){
-						roomUsers[i].splice(j,1);
-						roomSockets[i].splice(j,1);
-					}
-				}
-			}
 			if(rooms[i]==data['room']){
 				if(roomPasswords[i] != "" && roomPasswords[i] != data['password']){
-					thoseInRoom = roomSockets[0];
 					roomSockets[0].push(socket);
 					roomUsers[0].push(name);
 					otherUsers = roomUsers[0];
 					room = "General";
 				}
 				else{
-					thoseInRoom = roomSockets[i];
 					roomSockets[i].push(socket);
 					roomUsers[i].push(name);
 					otherUsers = roomUsers[i];
@@ -149,12 +133,35 @@ io.sockets.on("connection", function(socket){
 			}
 		}
 		socket.emit("validate_nickname_to_client", {nickname:name, inRoom:room, users:otherUsers});
-		for(var i = 0; i < thoseInRoom.length; i++){
-			thoseInRoom[i].emit("new_user_joined", {users:otherUsers});
+		for(var i = 0; i < roomSockets.length; i++){
+			for(var j = 0; j < roomSockets[i].length; i++){
+				roomSockets[i][j].emit("new_user_joined", {users:otherUsers});
+			}
 		}
 	});
 });
 
-
+function removeUser(data, socket){
+	console.log("crntroom: "+data['crntRoom']); // log it to the Node.JS output
+	console.log("crntuser: "+data['crntUser']); // log it to the Node.JS output
+	for(var i = 0; i < rooms.length; i++){
+		if(rooms[i]==data['crntRoom']){
+			console.log("ROOM USERS: "+roomUsers); // log it to the Node.JS output
+			for(var j = 0; j < roomUsers[i].length; j++){
+				if(roomUsers[i][j] == data['crntUser']){
+					console.log("crntroomasjkdhkja: "+roomUsers[i]); // log it to the Node.JS output
+					roomUsers[i].splice(j, 1);
+					roomSockets[i].splice(j, 1);
+					console.log("AHJSJDKHJcrntroomasjkdhkja: "+roomUsers[i]); // log it to the Node.JS output
+				}
+			}
+		}
+	}
+	for(var i = 0; i < loggedUsers.length; i++){
+		if(loggedUsers[i] == data['crntUser']){
+			loggedUsers.splice(i,1);
+		}
+	}
+}
 
 

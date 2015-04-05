@@ -32,6 +32,7 @@
 		$("#RoomUsers").show();
       });
       socketio.on("new_user_joined",function(data) {
+		alert("new user has joined!");
 		var allUsers = "";
 		for(var i = 0; i < data['users'].length; i++){
 			allUsers += "<option>"+data['users'][i] + "</option>";
@@ -79,7 +80,7 @@
 		var name = document.getElementById("nickname").value;
 		var joinRoom = document.getElementById("availableRooms").value;
 		var pass = document.getElementById("pass").value;
-		var usr = currentUser;
+		var usr = nickname;
 		socketio.emit("nickname_to_server", {nickname:name, room:joinRoom, password:pass, crntUser:usr, crntRoom:currentRoom});	
 	} 
 
@@ -91,9 +92,12 @@
 	function createNewRoom(){
 	//make a new room with the user's input if that name is not already taken and add to the available rooms list
 	var room_name = document.getElementById("createNewRoom").value;
-	alert(room_name);
+	var leavingRoom = currentRoom;
+	currentRoom=room_name;
 	var room_pass = document.getElementById("newPass").value;
 	socketio.emit("add_room_on_server", {creator:nickname, roomName: room_name, roomPass: room_pass});
+	var name = document.getElementById("nickname").value;
+	socketio.emit("nickname_to_server", {nickname:name, room:room_name, password:room_pass, crntUser:nickname, crntRoom:leavingRoom});	
 	removePosts();
 	//$("#crntRoom").innerHTML = room_name;
 	populateRooms(); 		
