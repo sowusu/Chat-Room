@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
    <head>
+<!--	<link rel = "stylesheet" type = "text/css" href = "decor.css" > -->
 <!-- Jquery -->
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
       <script src="/socket.io/socket.io.js"></script>
@@ -16,7 +17,10 @@
       socketio.on("message_to_client",function(data) {
          //Append an HR thematic break and the escaped HTML of the new message
          document.getElementById("chatlog").appendChild(document.createElement("hr"));
-         document.getElementById("chatlog").appendChild(document.createTextNode(data['from'] + ": " + data['message']));
+        var post_div = $(document).creatElement('div');
+	post_div.attr("class", "post");
+	post_div.innerHTML =  data['from'] + ": " + data['message'];
+	document.getElementById("chatlog").appendChild(post_div);
       });
       socketio.on("validate_nickname_to_client",function(data) {
 		nickname = data['nickname'];
@@ -121,6 +125,7 @@
 	</select>
       <input type=text" id="private_message_input"/>
       <button onclick="PMMessage()" id="PMButton">PM</button>
+
       <div id="chatlog"></div>
    </body>
 </html>
