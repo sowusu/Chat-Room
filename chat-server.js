@@ -27,6 +27,17 @@ var roomPasswords = [""];
 var roomSockets = [[]];
 var roomUsers = [[]];
 var bannedUsers = [[]];
+var roomCreators = ["devs"];
+
+function getId(name, the_array){
+	
+	for (var i = 0; i < the_array.length; i++){
+		if (the_array[i] === name){
+			return i;
+		}
+	}
+	return -1;
+}
 
  
 // Do the Socket.IO magic:
@@ -71,6 +82,19 @@ io.sockets.on("connection", function(socket){
 
 	socket.on('get_rooms_on_server', function(data) {
 		io.sockets.emit("return_rooms_to_client",{allRooms:rooms, index:rooms.length }) // broadcast the message to other users
+	});
+
+
+	socket.on("add_room_on_server", function(data){
+	
+		rooms.push(data["roomName"]);
+		roomPasswords.push(data["roomPass"]);
+		roomSockets.push([]);
+		roomCreators.push(data["creator"]);
+		roomUsers.push([]);
+		roomSockets[roomSockets.length - 1].push(socket);
+		
+
 	});
 
 	socket.on('nickname_to_server', function(data) {

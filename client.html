@@ -65,6 +65,15 @@
 		$("#RoomUsers").hide();
 	}
 
+	function removePosts(){
+		var posts = document.getElementById("chatlog");
+		children = posts.childNodes;	
+		while (children.length > 0){
+			posts.removeChild(posts.lastChild);
+			children = posts.childNodes;
+		}
+	}
+
 	function login(){
 	//log the user into the selected room.
 		var name = document.getElementById("nickname").value;
@@ -81,7 +90,14 @@
 
 	function createNewRoom(){
 	//make a new room with the user's input if that name is not already taken and add to the available rooms list
-	
+	var room_name = document.getElementById("createNewRoom").value;
+	alert(room_name);
+	var room_pass = document.getElementById("newPass").value;
+	socketio.emit("add_room_on_server", {creator:nickname, roomName: room_name, roomPass: room_pass});
+	removePosts();
+	//$("#crntRoom").innerHTML = room_name;
+	populateRooms(); 		
+	document.getElementById("crntRoom").innerHTML = room_name;
 	}
       </script>
    </head>
