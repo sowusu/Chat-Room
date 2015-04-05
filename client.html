@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
    <head>
+      <title> CHAT IT UP! </title>
+   </head>
+   <body>
 <!-- Jquery -->
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
       <script src="/socket.io/socket.io.js"></script>
@@ -179,8 +182,6 @@
 	document.getElementById("crntRoom").innerHTML = room_name;
 	}
       </script>
-   </head>
-   <body>
 	<h1 id="crntRoom"> </h1>
 	<h2 id="myName"> </h2>
 	<label id="loginText">Nickname: </label> <input type="text" id="nickname"/>
@@ -191,11 +192,11 @@
 	<label id="newRoom">Create New Room: </label> <input type="text" id="createNewRoom"/>
 	<label id="newPassText">Password (Leave blank for public room): </label> <input type="password" id="newPass"/>
 	<button onclick="createNewRoom()" id="create"> Create</button>
-      <input type=text" id="message_input"/>
+      <input type="text" id="message_input"/>
       <button onclick="sendMessage()" id="sendButton">send</button>
 	<select id="RoomUsers">
 	</select>
-      <input type=text" id="private_message_input"/>
+      <input type="text" id="private_message_input"/>
       <button onclick="PMMessage()" id="PMButton">PM</button>
       <button onclick="kick()" id="kick">Kick</button>
       <button onclick="ban()" id="ban">Ban</button>
@@ -203,7 +204,7 @@
       <button onclick="ignore()" id="ignore">Toggle Ignore</button>
 	<select id="friends">
 	</select>
-      <input type=text" id="friend_message_input"/>
+      <input type="text" id="friend_message_input"/>
       <button onclick="FriendMessage()" id="FriendButton">Msg Friend</button>
       <button onclick="unfriend()" id="unfriend">Unfriend</button>
       <div id="chatlog"></div>
