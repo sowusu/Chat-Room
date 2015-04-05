@@ -26,7 +26,7 @@ var rooms = ["General"];
 var roomPasswords = [""];
 var roomSockets = [[]];
 var roomUsers = [[]];
-
+var bannedUsers = [[]];
 
  
 // Do the Socket.IO magic:
@@ -38,13 +38,31 @@ io.sockets.on("connection", function(socket){
  
 	socket.on('message_to_server', function(data) {
 		// This callback runs when the server receives a new message from the client.
- 
+		var fromUser = data['nickname']; 
 		console.log("message: "+data["message"]); // log it to the Node.JS output
 		console.log("to users: "+roomUsers); // log it to the Node.JS output
 		for(var i = 0; i < rooms.length; i++){
 			if(rooms[i] == data['toRoom']){
 				for(var j = 0; j < roomUsers[i].length; j++){
-					roomSockets[i][j].emit("message_to_client",{message:data["message"] }) // broadcast the message to other users
+					roomSockets[i][j].emit("message_to_client",{message:data["message"], from:fromUser }) // broadcast the message to other users
+				}
+			}
+			break;
+		}
+	});
+
+
+	socket.on('private_message_to_server', function(data) {
+		// This callback runs when the server receives a new message from the client.
+		var fromUser = data['nickname']; 
+		console.log("PMmessage: "+data["message"]); // log it to the Node.JS output
+		console.log("to user: "+data['toUser']); // log it to the Node.JS output
+		for(var i = 0; i < rooms.length; i++){
+			if(rooms[i] == data['toRoom']){
+				for(var j = 0; j < roomUsers[i].length; j++){
+					if(roomUsers[i][j] == data['toUser']){
+						roomSockets[i][j].emit("message_to_client",{message:data["message"], from:fromUser }) // broadcast the message to other users
+					}
 				}
 			}
 			break;
@@ -80,23 +98,36 @@ io.sockets.on("connection", function(socket){
 		}
 		var room = data['room'];
 		var otherUsers;
+		var thoseInRoom;
 		for(var i = 0; i < rooms.length; i++){
+			if(rooms[i]==data['crntRoom']){
+				for(var j = 0; j < roomUsers[i].length; j++){
+					if(roomsUsers[i][j] = data['crntUser']){
+						roomUsers[i].splice(j,1);
+						roomSockets[i].splice(j,1);
+					}
+				}
+			}
 			if(rooms[i]==data['room']){
 				if(roomPasswords[i] != "" && roomPasswords[i] != data['password']){
+					thoseInRoom = roomSockets[0];
 					roomSockets[0].push(socket);
 					roomUsers[0].push(name);
 					otherUsers = roomUsers[0];
 					room = "General";
 				}
 				else{
+					thoseInRoom = roomSockets[i];
 					roomSockets[i].push(socket);
 					roomUsers[i].push(name);
 					otherUsers = roomUsers[i];
 				}
-				break;
 			}
 		}
 		socket.emit("validate_nickname_to_client", {nickname:name, inRoom:room, users:otherUsers});
+		for(var i = 0; i < thoseInRoom.length; i++){
+			thoseInRoom[i].emit("new_user_joined", {users:otherUsers});
+		}
 	});
 });
 

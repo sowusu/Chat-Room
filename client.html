@@ -16,7 +16,7 @@
       socketio.on("message_to_client",function(data) {
          //Append an HR thematic break and the escaped HTML of the new message
          document.getElementById("chatlog").appendChild(document.createElement("hr"));
-         document.getElementById("chatlog").appendChild(document.createTextNode(data['message']));
+         document.getElementById("chatlog").appendChild(document.createTextNode(data['from'] + ": " + data['message']));
       });
       socketio.on("validate_nickname_to_client",function(data) {
 		nickname = data['nickname'];
@@ -31,21 +31,31 @@
 		document.getElementById("RoomUsers").innerHTML = allUsers;
 		$("#RoomUsers").show();
       });
-      socketio.on("return_rooms_to_client",function(data) {
-		//TODO: remove all chiled nodes in available rooms
-		var numRooms = data['index'];
-		for(var i = 0; i < numRooms; i++){
-			var opt = document.createElement("option");
-			opt.class = "room";
-			opt.value = data['allRooms'][i];
-			opt.innerHTML = data['allRooms'][i];
-			document.getElementById("availableRooms").appendChild(opt);
+      socketio.on("new_user_joined",function(data) {
+		var allUsers = "";
+		for(var i = 0; i < data['users'].length; i++){
+			allUsers += "<option>"+data['users'][i] + "</option>";
 		}
+		document.getElementById("RoomUsers").innerHTML = allUsers;
+      });
+      socketio.on("return_rooms_to_client",function(data) {
+		var numRooms = data['index'];
+		var rooms = "";
+		for(var i = 0; i < numRooms; i++){
+			rooms += "<option>" + data['allRooms'][i] + "</option>";
+		}
+		document.getElementById("availableRooms").innerHTML = rooms;
       });
  
       function sendMessage(){
          var msg = document.getElementById("message_input").value;
-         socketio.emit("message_to_server", {message:msg, toRoom:currentRoom});
+         socketio.emit("message_to_server", {message:msg, toRoom:currentRoom, nickname:nickname});
+      }
+
+      function PMMessage(){
+         var msg = document.getElementById("private_message_input").value;
+	var usr = document.getElementById("RoomUsers").value;
+         socketio.emit("private_message_to_server", {message:msg, toRoom:currentRoom, toUser:usr, nickname:nickname});
       }
 	
 	function waitForLogin(){
@@ -60,7 +70,8 @@
 		var name = document.getElementById("nickname").value;
 		var joinRoom = document.getElementById("availableRooms").value;
 		var pass = document.getElementById("pass").value;
-		socketio.emit("nickname_to_server", {nickname:name, room:joinRoom, password:pass});	
+		var usr = currentUser;
+		socketio.emit("nickname_to_server", {nickname:name, room:joinRoom, password:pass, crntUser:usr, crntRoom:currentRoom});	
 	} 
 
 	function populateRooms(){
@@ -84,10 +95,12 @@
 	<label id="newRoom">Create New Room: </label> <input type="text" id="createNewRoom"/>
 	<label id="newPassText">Password (Leave blank for public room): </label> <input type="password" id="newPass"/>
 	<button onclick="createNewRoom()" id="create"> Create</button>
-	<select id="RoomUsers">
-	</select>
       <input type=text" id="message_input"/>
       <button onclick="sendMessage()" id="sendButton">send</button>
+	<select id="RoomUsers">
+	</select>
+      <input type=text" id="private_message_input"/>
+      <button onclick="PMMessage()" id="PMButton">PM</button>
       <div id="chatlog"></div>
    </body>
 </html>
