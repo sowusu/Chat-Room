@@ -2,11 +2,15 @@
 <html>
    <head>
 	<link rel = "stylesheet" type = "text/css" href = "decor.css" >
+      <title> CHAT IT UP! </title>
+   </head>
+   <body>
 <!-- Jquery -->
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
       <script src="/socket.io/socket.io.js"></script>
       <script type ="text/javascript">
-	
+
+	//after the page loads, we populate the page properly	
 	$(document).ready(function(){
 		waitForLogin();
 		populateRooms();
@@ -14,7 +18,7 @@
 	var nickname = "Guest";
 	var currentRoom = "General";
 	var roomCreator = "Guest";
-      var socketio = io.connect();
+      var socketio = io.connect();//socket for socketio use
       socketio.on("message_to_client",function(data) {
          //Append an HR thematic break and the escaped HTML of the new message
          document.getElementById("chatlog").appendChild(document.createElement("hr"));
@@ -23,6 +27,7 @@
 	post_div.innerHTML =  data['from'] + ": " + data['message'];
 	document.getElementById("chatlog").appendChild(post_div);
       });
+	//return from the server telling us about what our nickname is what room we are in and other important info
       socketio.on("validate_nickname_to_client",function(data) {
 		nickname = data['nickname'];
 		currentRoom = data['inRoom'];
@@ -37,7 +42,11 @@
 			allUsers += "<option>"+data['users'][i] + "</option>";
 		}
 		document.getElementById("RoomUsers").innerHTML = allUsers;
-		//$("#RoomUsers").show();
+		$("#friend").show();
+		$("#ignore").show();
+		$("#unfriend").show();
+		$("#friendButton").show();
+		$("#friend_message_input").show();
 		if(nickname===roomCreator){
 			$("#ban").show();
 			$("#kick").show();
@@ -46,7 +55,9 @@
 			$("#ban").hide();
 			$("#kick").hide();
 		}
+		document.getElementById("myName").innerHTML = nickname;
       });
+	//when a new user joins we must update all sockets in the room with the new user's name
       socketio.on("new_user_joined",function(data) {
 		var allUsers = "";
 		for(var i = 0; i < data['users'].length; i++){
@@ -54,6 +65,7 @@
 		}
 		document.getElementById("RoomUsers").innerHTML = allUsers;
       });
+	//update all the rooms when a new room is created so they can be joined
       socketio.on("return_rooms_to_client",function(data) {
 		var numRooms = data['index'];
 		var rooms = "";
@@ -62,7 +74,17 @@
 		}
 		document.getElementById("availableRooms").innerHTML = rooms;
       });
+	//update a user's friend list (return from add friend server call)
+      socketio.on("return_friends_to_client",function(data) {
+		var numFriends = data['numFriends'];
+		var list = "";
+		for(var i = 0; i < numFriends; i++){
+			list += "<option>" + data['friends'][i] + "</option>";
+		}
+		document.getElementById("friends").innerHTML = list;
+      });
  
+	//send a message to all people in room
       function sendMessage(){
 	var username = nickname;
 	if (document.getElementById("checked").checked){
@@ -72,10 +94,18 @@
          socketio.emit("message_to_server", {message:msg, toRoom:currentRoom, nickname:username});
       }
 
+	//send a private message to a specific user in the room
       function PMMessage(){
          var msg = document.getElementById("private_message_input").value;
 	var usr = document.getElementById("RoomUsers").value;
          socketio.emit("private_message_to_server", {message:msg, toRoom:currentRoom, toUser:usr, nickname:nickname});
+      }
+
+	//send a messae to your best pal
+      function FriendMessage(){
+         var msg = document.getElementById("friend_message_input").value;
+	var usr = document.getElementById("friends").value;
+         socketio.emit("friend_message_to_server", {message:msg, toUser:usr, nickname:nickname});
       }
 	
 	function waitForLogin(){
@@ -87,8 +117,14 @@
 		//$("#ban").hide();
 		//$("#kick").hide();
 		$("#mgBox").hide();
+		$("#friend").hide();
+		$("#ignore").hide();
+		$("#unfriend").hide();
+		$("#friendButton").hide();
+		$("#friend_message_input").hide();
 	}
 
+	//removes all of the post when users change rooms
 	function removePosts(){
 		var posts = document.getElementById("chatlog");
 		children = posts.childNodes;	
@@ -112,14 +148,34 @@
 		socketio.emit("get_rooms_on_server");
 	}
 
+	//a creator can kick a user they don't like
 	function kick(){
 		var name = document.getElementById("RoomUsers").value;
 		socketio.emit("kick_user_on_server", {kickedUser:name, crntRoom:currentRoom});	
 	}
 
+	//when kicking is insufficient, the creator can BAN a user permanetely form the rrom
 	function ban(){
 		var name = document.getElementById("RoomUsers").value;
 		socketio.emit("ban_user_on_server", {bannedUser:name, kickedUser:name, crntRoom:currentRoom});	
+	}
+
+	//users can add each other to a friend's list so they can chat across rooms
+	function friend(){
+		var name = document.getElementById("RoomUsers").value;
+		socketio.emit("friend_user_on_server", {friend:name, nickname:nickname});	
+	}
+
+	//useres can remove friends they nolonger like
+	function unfriend(){
+		var name = document.getElementById("friends").value;
+		socketio.emit("friend_user_on_server", {friend:name, nickname:nickname});	
+	}
+
+	//users can ignore people who are unpleasent and the creator hasn't banned
+	function ignore(){
+		var name = document.getElementById("RoomUsers").value;
+		socketio.emit("ignore_user_on_server", {ignore:name, nickname:nickname});	
 	}
 
 	function createNewRoom(){
@@ -137,10 +193,9 @@
 	document.getElementById("crntRoom").innerHTML = room_name;
 	}
       </script>
-   </head>
-   <body>
 	<div id = "main">
 	<h1 id="crntRoom"> Main Lobby</h1>
+	<h2 id="myName"> </h2>
 	
 	<div id = "roomBox">
 	 <b>Enter a room.. </b><br>
@@ -164,6 +219,13 @@
 	</select>
       <b>Message:</b><input type=text" id="private_message_input"/><br>
       <button onclick="PMMessage()" id="PMButton">PM</button>
+      <button onclick="friend()" id="friend">Friend</button>
+      <button onclick="ignore()" id="ignore">Toggle Ignore</button>
+	<select id="friends">
+	</select>
+      <input type="text" id="friend_message_input"/>
+      <button onclick="FriendMessage()" id="FriendButton">Msg Friend</button>
+      <button onclick="unfriend()" id="unfriend">Unfriend</button>
 	</div>	
 
 	<div id = "mgBox">
